@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff8f5" />
+      <stop offset="50%" stop-color="#ffdcc6" />
+      <stop offset="100%" stop-color="#e08744" />
+    </linearGradient>
+    <linearGradient id="smileGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#934b08" />
+      <stop offset="100%" stop-color="#e08744" />
+    </linearGradient>
+    <linearGradient id="leafGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#206a50" />
+      <stop offset="100%" stop-color="#8dd5b5" />
+    </linearGradient>
+    <filter id="softShadow" x="-10%" y="-10%" width="130%" height="130%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#934b08" flood-opacity="0.18" />
+    </filter>
+  </defs>
+
+  <!-- Background Canvas -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+
+  <!-- Inner Sanctuary Ring -->
+  <circle cx="256" cy="256" r="190" fill="#ffffff" filter="url(#softShadow)" />
+
+  <!-- Lotus / Sparkle Petal at top -->
+  <g transform="translate(256, 175)">
+    <!-- Central Sun Sparkle -->
+    <path d="M 0 -38 C 4 -12 12 -4 38 0 C 12 4 4 12 0 38 C -4 12 -12 4 -38 0 C -12 -4 -4 -12 0 -38 Z" fill="#e08744" />
+    <circle cx="0" cy="0" r="7" fill="#fabc4d" />
+  </g>
+
+  <!-- Harmonious Radiating Smile Arch -->
+  <path d="M 148 248 C 170 336 342 336 364 248" fill="none" stroke="url(#smileGrad)" stroke-width="26" stroke-linecap="round" />
+
+  <!-- Gentle Aligned Teeth Contour -->
+  <path d="M 188 266 C 218 300 294 300 324 266" fill="none" stroke="#206a50" stroke-width="12" stroke-linecap="round" opacity="0.85" />
+
+  <!-- Accompanying Healing Leaf Accent -->
+  <path d="M 358 190 C 378 184 396 196 394 216 C 374 222 356 210 358 190 Z" fill="url(#leafGrad)" />
+</svg>

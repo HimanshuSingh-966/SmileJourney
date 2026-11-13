@@ -1,0 +1,8 @@
+{
+  "name": "SmileJourneyAI",
+  "description": "Mindful holistic cosmetic wellness companionship with smile tracking, on-device AI scans, and specialist recommendations.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

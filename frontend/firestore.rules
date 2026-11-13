@@ -1,0 +1,83 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email'])
+        && data.id is string && data.id.size() <= 128 && data.id == request.auth.uid
+        && data.email is string && data.email.size() <= 256
+        && (!('name' in data) || (data.name is string && data.name.size() <= 100))
+        && (!('age' in data) || (data.age is string && data.age.size() <= 10))
+        && (!('intent' in data) || (data.intent is string && data.intent.size() <= 50))
+        && (!('ritualDay' in data) || data.ritualDay is number)
+        && (!('harmonyScore' in data) || data.harmonyScore is number);
+    }
+
+    function isValidQuestion(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'question', 'checked'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId && data.userId == request.auth.uid
+        && data.question is string && data.question.size() <= 300
+        && data.checked is bool
+        && (!('explanation' in data) || (data.explanation is string && data.explanation.size() <= 500));
+    }
+
+    // User collection and subcollections
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false; // Disallow querying all users
+      allow create: if isValidId(userId) && isOwner(userId) && isValidUser(incoming());
+      allow update: if isValidId(userId) && isOwner(userId) && isValidUser(incoming())
+                    && incoming().id == existing().id && incoming().email == existing().email;
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // Backend Completed Assessments
+      // The Python backend writes these records directly via Firebase Admin SDK.
+      // The frontend client has read-only access (get and list) for the authenticated owner.
+      match /assessments/{assessmentId} {
+        allow get, list: if isValidId(userId) && isOwner(userId);
+        allow create, update, delete: if false; // Frontend code MUST NOT write assessment results
+      }
+
+      // Legacy Milestones (read-only for authenticated owner; writes and deletes permanently denied)
+      match /milestones/{milestoneId} {
+        allow get, list: if isValidId(userId) && isOwner(userId);
+        allow create, update, delete: if false; // Frontend code MUST NOT write or delete legacy milestones
+      }
+
+      // User Consultation Questions (user-owned checklist)
+      match /questions/{questionId} {
+        allow get, list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(questionId) && isOwner(userId) && isValidQuestion(incoming(), userId);
+        allow update: if isValidId(userId) && isValidId(questionId) && isOwner(userId) && isValidQuestion(incoming(), userId)
+                      && incoming().userId == existing().userId;
+        allow delete: if isValidId(userId) && isValidId(questionId) && isOwner(userId);
+      }
+    }
+  }
+}

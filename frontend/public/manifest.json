@@ -1,0 +1,31 @@
+{
+  "id": "/",
+  "name": "SmileJourneyAI — Mindful Cosmetic Wellness",
+  "short_name": "SmileJourney",
+  "description": "Mindful holistic cosmetic wellness companionship with smile tracking, on-device AI scans, and specialist recommendations.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fff8f5",
+  "theme_color": "#fff8f5",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
