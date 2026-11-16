@@ -2,6 +2,7 @@
 
 from functools import lru_cache
 from io import BytesIO
+import logging
 
 import numpy as np
 import torch
@@ -17,6 +18,8 @@ from app.services.image_preprocessing import (
     PREPROCESSING_VERSION,
     letterbox_rgb,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class InferenceUnavailable(RuntimeError):
@@ -61,6 +64,18 @@ def _load_model(repo_id: str, token: str | None) -> tuple[nn.Module, int]:
         )
         checkpoint = torch.load(checkpoint_path, map_location="cpu", weights_only=True)
     except Exception as exc:
+        # Keep the client response generic, but preserve the underlying reason
+        # in Render logs so repo access and checkpoint-format failures can be
+        # distinguished without exposing a Hugging Face token.
+        detail = str(exc)
+        if token:
+            detail = detail.replace(token, "[REDACTED]")
+        logger.error(
+            "Model checkpoint download/load failed (%s): %s",
+            type(exc).__name__,
+            detail,
+            exc_info=True,
+        )
         raise InferenceUnavailable("The model checkpoint could not be downloaded or loaded.") from exc
 
     if not isinstance(checkpoint, dict):
