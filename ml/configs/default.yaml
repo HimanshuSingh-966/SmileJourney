@@ -1,0 +1,26 @@
+seed: 42
+
+data:
+  labels_csv: data/labels.csv
+  image_dir: data/images
+  image_size: 224
+  batch_size: 8
+  num_workers: 0
+  train_fraction: 0.70
+  validation_fraction: 0.15
+  test_fraction: 0.15
+
+model:
+  backbone: resnet18 # resnet18 or efficientnet_b0
+  pretrained: true
+  dropout: 0.20
+
+training:
+  epochs: 20
+  learning_rate: 0.0001
+  weight_decay: 0.0001
+  patience: 5
+  class_weight_power: 0.5 # inverse-frequency weight raised to this power
+  device: auto # auto, cpu, or cuda
+
+output_dir: checkpoints

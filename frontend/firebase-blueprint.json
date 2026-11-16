@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with wellness intent, age, and holistic journey day count",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string", "maxLength": 256 },
+        "age": { "type": "string", "maxLength": 10 },
+        "intent": { "type": "string", "maxLength": 50 },
+        "ritualDay": { "type": "number" },
+        "harmonyScore": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "email"]
+    },
+    "Assessment": {
+      "title": "Client-Persisted Completed Assessment",
+      "description": "Validated synchronous Render assessment result saved by the signed-in owner through the Firebase Web SDK",
+      "type": "object",
+      "properties": {
+        "assessment_id": { "type": "string", "maxLength": 128 },
+        "status": { "type": "string", "enum": ["complete"] },
+        "score": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "findings": { "type": "array", "minItems": 5, "maxItems": 5 },
+        "specialist_recommendation": { "type": ["object", "null"] },
+        "photo_object_key": { "type": "string", "maxLength": 512 },
+        "created_at": { "type": "string" },
+        "completed_at": { "type": ["string", "null"] }
+      },
+      "required": ["assessment_id", "status", "score", "findings", "photo_object_key", "created_at", "completed_at", "specialist_recommendation"]
+    },
+    "ConsultationQuestion": {
+      "title": "Specialist Consultation Question",
+      "description": "Curated or user-added question for in-person dental consultation checklist",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "userId": { "type": "string", "maxLength": 128 },
+        "question": { "type": "string", "maxLength": 300 },
+        "explanation": { "type": "string", "maxLength": 500 },
+        "checked": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "userId", "question", "checked"]
+    },
+    "Milestone": {
+      "title": "Legacy Smile Milestone",
+        "description": "Legacy smile milestone log stored in user subcollection, read-only for client",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "maxLength": 128 },
+        "score": { "type": "number" },
+        "photoUrl": { "type": "string" },
+        "date": { "type": "string" },
+        "dayLabel": { "type": "string" },
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "tags": { "type": "array" },
+        "assessmentId": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "score", "photoUrl"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores individual user profile and journey metadata"
+    },
+    "/users/{userId}/assessments/{assessmentId}": {
+      "schema": { "$ref": "#/entities/Assessment" },
+      "description": "Completed smile assessments created by the authenticated owner; owner read/create only, immutable after creation"
+    },
+    "/users/{userId}/milestones/{milestoneId}": {
+      "schema": { "$ref": "#/entities/Milestone" },
+      "description": "Legacy milestone logs, read-only for authenticated owner"
+    },
+    "/users/{userId}/questions/{questionId}": {
+      "schema": { "$ref": "#/entities/ConsultationQuestion" },
+      "description": "User's consultation questions for specialist appointments"
+    }
+  }
+}

@@ -1,0 +1,7 @@
+torch>=2.4,<3.0
+torchvision>=0.19,<1.0
+Pillow>=10.4,<12.0
+PyYAML>=6.0,<7.0
+numpy>=1.26,<3.0
+scikit-learn>=1.5,<2.0
+iterative-stratification>=0.1.7,<0.2

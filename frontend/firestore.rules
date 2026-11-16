@@ -1,0 +1,170 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Helper functions
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['id', 'email'])
+        && data.id is string && data.id.size() <= 128 && data.id == request.auth.uid
+        && data.email is string && data.email.size() <= 256
+        && (!('name' in data) || (data.name is string && data.name.size() <= 100))
+        && (!('age' in data) || (data.age is string && data.age.size() <= 10))
+        && (!('intent' in data) || (data.intent is string && data.intent.size() <= 50))
+        && (!('ritualDay' in data) || data.ritualDay is number)
+        && (!('harmonyScore' in data) || data.harmonyScore is number);
+    }
+
+    function isValidQuestion(data, userId) {
+      return data.keys().hasAll(['id', 'userId', 'question', 'checked'])
+        && data.id is string && data.id.size() <= 128
+        && data.userId is string && data.userId == userId && data.userId == request.auth.uid
+        && data.question is string && data.question.size() <= 300
+        && data.checked is bool
+        && (!('explanation' in data) || (data.explanation is string && data.explanation.size() <= 500));
+    }
+
+    function isValidFinding(f) {
+      return f is map
+        && f.keys().hasAll(['id', 'category', 'title', 'severity', 'description'])
+        && f.keys().hasOnly(['id', 'category', 'title', 'severity', 'description', 'icon'])
+        && f.id is string && f.id.size() > 0 && f.id.size() <= 128
+        && f.category in ['crowding/alignment', 'gaps', 'discoloration', 'gum line', 'symmetry']
+        && f.title is string && f.title.size() > 0 && f.title.size() <= 200
+        && f.severity in ['none', 'mild', 'moderate', 'severe']
+        && f.description is string && f.description.size() > 0 && f.description.size() <= 1000
+        && (!('icon' in f) || (f.icon is string && f.icon.size() > 0 && f.icon.size() <= 64));
+    }
+
+    function isValidSpecialistRecommendation(rec) {
+      return rec is map
+        && rec.keys().hasOnly(['primarySpecialist', 'coSpecialist', 'notes', 'discipline'])
+        && (!('primarySpecialist' in rec) || (rec.primarySpecialist is string && rec.primarySpecialist.size() <= 120))
+        && (!('coSpecialist' in rec) || rec.coSpecialist == null || (rec.coSpecialist is string && rec.coSpecialist.size() <= 120))
+        && (!('notes' in rec) || (rec.notes is string && rec.notes.size() <= 1000))
+        && (!('discipline' in rec) || (rec.discipline is string && rec.discipline.size() <= 120));
+    }
+
+    function isValidAssessment(data, userId, assessmentId) {
+      return data.keys().hasAll([
+          'assessment_id',
+          'status',
+          'score',
+          'findings',
+          'photo_object_key',
+          'created_at',
+          'completed_at',
+          'specialist_recommendation'
+        ])
+        && data.keys().hasOnly([
+          'assessment_id',
+          'status',
+          'score',
+          'findings',
+          'photo_object_key',
+          'created_at',
+          'completed_at',
+          'specialist_recommendation'
+        ])
+        && !('photo_url' in data)
+        && data.assessment_id is string
+        && data.assessment_id.size() > 0
+        && data.assessment_id.size() <= 128
+        && data.assessment_id == assessmentId
+        && data.status is string
+        && data.status == 'complete'
+        && data.score is int
+        && data.score >= 0
+        && data.score <= 100
+        && data.photo_object_key is string
+        && data.photo_object_key.size() > ('user-photos/' + userId + '/').size()
+        && data.photo_object_key.size() <= 512
+        && data.photo_object_key.matches('^user-photos/' + userId + '/.+')
+        && !data.photo_object_key.matches('.*\\.\\..*')
+        && data.created_at is string
+        && data.created_at.size() >= 10
+        && data.created_at.size() <= 64
+        && (!('completed_at' in data) || data.completed_at == null || (data.completed_at is string && data.completed_at.size() >= 10 && data.completed_at.size() <= 64))
+        && data.findings is list
+        && data.findings.size() == 5
+        && isValidFinding(data.findings[0])
+        && isValidFinding(data.findings[1])
+        && isValidFinding(data.findings[2])
+        && isValidFinding(data.findings[3])
+        && isValidFinding(data.findings[4])
+        && data.findings[0].category != data.findings[1].category
+        && data.findings[0].category != data.findings[2].category
+        && data.findings[0].category != data.findings[3].category
+        && data.findings[0].category != data.findings[4].category
+        && data.findings[1].category != data.findings[2].category
+        && data.findings[1].category != data.findings[3].category
+        && data.findings[1].category != data.findings[4].category
+        && data.findings[2].category != data.findings[3].category
+        && data.findings[2].category != data.findings[4].category
+        && data.findings[3].category != data.findings[4].category
+        && (!('specialist_recommendation' in data) || data.specialist_recommendation == null || isValidSpecialistRecommendation(data.specialist_recommendation));
+    }
+
+    // User collection and subcollections
+    match /users/{userId} {
+      allow get: if isValidId(userId) && isOwner(userId);
+      allow list: if false; // Disallow querying all users
+      allow create: if isValidId(userId) && isOwner(userId) && isValidUser(incoming());
+      allow update: if isValidId(userId) && isOwner(userId) && isValidUser(incoming())
+                    && incoming().id == existing().id && incoming().email == existing().email;
+      allow delete: if isValidId(userId) && isOwner(userId);
+
+      // Completed Assessments (frontend-persisted under Firebase Auth)
+      // The signed-in owner creates completed assessment documents from the frontend via
+      // the Firebase Web SDK after synchronous backend inference returns validated output.
+      // Intentionally create-only for writes: updates and deletes remain permanently denied
+      // so saved reports are immutable once recorded and never silently overwritten.
+      match /assessments/{assessmentId} {
+        allow get, list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId)
+                      && isValidId(assessmentId)
+                      && isOwner(userId)
+                      && isValidAssessment(incoming(), userId, assessmentId);
+        allow update, delete: if false; // Intentionally create-only; immutable once saved
+      }
+
+      // Legacy Milestones (read-only for authenticated owner; writes and deletes permanently denied)
+      match /milestones/{milestoneId} {
+        allow get, list: if isValidId(userId) && isOwner(userId);
+        allow create, update, delete: if false; // Frontend code MUST NOT write or delete legacy milestones
+      }
+
+      // User Consultation Questions (user-owned checklist)
+      match /questions/{questionId} {
+        allow get, list: if isValidId(userId) && isOwner(userId);
+        allow create: if isValidId(userId) && isValidId(questionId) && isOwner(userId) && isValidQuestion(incoming(), userId);
+        allow update: if isValidId(userId) && isValidId(questionId) && isOwner(userId) && isValidQuestion(incoming(), userId)
+                      && incoming().userId == existing().userId;
+        allow delete: if isValidId(userId) && isValidId(questionId) && isOwner(userId);
+      }
+    }
+  }
+}
