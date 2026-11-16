@@ -12,7 +12,7 @@ services:
       - key: APP_ENV
         value: production
       - key: ALLOWED_ORIGINS
-        sync: false
+        value: https://smilejourneyai.ai.studio
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: B2_ENDPOINT_URL
