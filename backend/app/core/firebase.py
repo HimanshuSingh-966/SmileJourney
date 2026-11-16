@@ -17,8 +17,9 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 import jwt
+from cryptography import x509
 from fastapi import HTTPException, status
-from jwt import InvalidTokenError
+from jwt import InvalidKeyError, InvalidTokenError
 
 from app.core.config import get_settings
 
@@ -81,9 +82,12 @@ def verify_firebase_token(token: str) -> str:
         if certificate is None:
             raise InvalidTokenError("Unknown Firebase signing key.")
 
+        # Google's Secure Token endpoint publishes X.509 certificates, while
+        # PyJWT expects a parsed public key for RS256 verification.
+        public_key = x509.load_pem_x509_certificate(certificate.encode("utf-8")).public_key()
         claims = jwt.decode(
             token,
-            certificate,
+            public_key,
             algorithms=["RS256"],
             audience=project_id,
             issuer=f"https://securetoken.google.com/{project_id}",
@@ -107,7 +111,7 @@ def verify_firebase_token(token: str) -> str:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Firebase token verification is temporarily unavailable.",
         ) from exc
-    except (InvalidTokenError, TypeError, ValueError, KeyError) as exc:
+    except (InvalidKeyError, InvalidTokenError, TypeError, ValueError, KeyError) as exc:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Firebase authentication token is invalid or expired.",
